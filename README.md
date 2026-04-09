@@ -1,4 +1,7 @@
 # System Monitor Application 
+
+<img src="./Images/Real-Time System Monitor.png" alt="Dashboard" width="700">
+
 Overview
 This application is a Flask-based real-time system monitor that displays live information about CPU usage, RAM usage, disk usage, IP address, MAC address, network status, processor, hostname, and operating system through a web dashboard. The backend exposes a main page and a JSON endpoint, while the frontend updates the interface periodically with JavaScript and allows drag-and-drop reordering of dashboard cards using SortableJS.
 
