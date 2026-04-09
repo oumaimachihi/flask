@@ -1,0 +1,6 @@
+Psutil
+matplotlib
+pandas
+seaborn
+flask 
+flask_socketio
