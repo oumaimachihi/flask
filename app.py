@@ -1,131 +1,82 @@
-import matplotlib
-matplotlib.use('Agg')
-from io import BytesIO
-import base64
-import matplotlib.pyplot as plt
-import pandas as pd
+from flask import Flask, render_template, jsonify
 import psutil
-import platform
+import socket
 import os
-import sys
-import seaborn as sns
-from flask import Flask, render_template, request
+import platform
 from datetime import datetime
-import time
-from flask_socketio import SocketIO, emit
 
-application = Flask(__name__)
+app = Flask(__name__)
 
-cpuusage=psutil.cpu_percent(2)
-x=cpuusage/100
-ramusage=psutil.virtual_memory()[2]
-y=ramusage/100
-proc=platform.processor()
-z=proc
-sys=platform.system()
-w=sys
-application.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(application)
 
-sns.set()
-sns.set_context("paper")
-sns.set_style("ticks", {'axes.facecolor': 'white',   'grid.color': '.8', 'grid.linestyle': u'-'})
-sns.set_palette("bright")
-DataPointCount = 0
-df = pd.DataFrame()
-firstrequest = False
-disconnectCount = 0
-connecttime = time.time()
+def bytes_to_gb(value):
+    return round(value / (1024 ** 3), 2)
 
-@socketio.on('connect', namespace='/')
-def test_connect():
-    global disconnectCount, connecttime
-    disconnectCount = 0
-    emit('my response', {'data': 'Connected'})
-    connecttime = time.time()
-    ip = request.environ['REMOTE_ADDR']
-    print('{} connected    @ {}'.format(ip, datetime.now().strftime("%H:%M:%S on %d/%m/%y")))
 
-@socketio.on('disconnect', namespace='/')
-def test_disconnect():
-    global disconnectCount, DataPointCount, firstrequest, df
-    disconnectCount += 1
-    ip = request.environ['REMOTE_ADDR']
-    print('{} disconnected @ {}'.format(ip, datetime.now().strftime("%H:%M:%S on %d/%m/%y")))
+def get_network_info():
+    addrs = psutil.net_if_addrs()
+    stats = psutil.net_if_stats()
 
-@application.route('/')
+    for iface, addr_list in addrs.items():
+        if iface.lower().startswith("lo"):
+            continue
+
+        ip_addr = None
+        mac_addr = None
+        is_up = stats.get(iface).isup if iface in stats else False
+
+        for addr in addr_list:
+            if addr.family == socket.AF_INET:
+                ip_addr = addr.address
+            elif str(addr.family) == 'AddressFamily.AF_PACKET' or getattr(socket, "AF_LINK", None) == addr.family:
+                mac_addr = addr.address
+
+        if ip_addr or mac_addr:
+            return {
+                "interface": iface,
+                "ip": ip_addr or "N/A",
+                "mac": mac_addr or "N/A",
+                "status": "Up" if is_up else "Down"
+            }
+
+    return {
+        "interface": "N/A",
+        "ip": "N/A",
+        "mac": "N/A",
+        "status": "Down"
+    }
+
+
+@app.route("/")
 def index():
-    global width, DataPointCount, df, clock, startClock, firstrequest, connecttime
-    width = 2
-    if not firstrequest:
-        firstrequest = True
-        startClock = datetime.now()
-        clock = datetime.now()
-        
-        
+    return render_template("index.html")
 
-    while True:
-        try:
-            # If clock var is not equal to actual clock, run this...
-            if clock != datetime.now():
-                TD = datetime.now() - startClock
-                CpuVal = psutil.cpu_percent(interval=None, percpu=False)
-                RamVal = psutil.virtual_memory()[2]
-                df2 = pd.DataFrame({'%CPU': CpuVal, '%RAM': RamVal, 
-                                    'Time':datetime.now().strftime("%S")},
-                                   index=[DataPointCount])
-                df = df.append(df2)
-              
-                df.set_index("Time", drop=True, inplace=True)
 
-                if DataPointCount > 2:
-                    plt.figure()
-                    
-                    if DataPointCount % 500 == 0:
-                        width = width / 1.3
-                        if width < 0.5:
-                            width = 0.5
+@app.route("/stats")
+def stats():
+    cpu = psutil.cpu_percent(interval=0.5)
+    ram = psutil.virtual_memory()
+    disk = psutil.disk_usage(os.sep)
+    net = get_network_info()
 
-                  
-                    df.plot(ylim=(0, 120), linewidth=1, alpha=0.5)
-                    plt.Axes.set_autoscalex_on(plt, True)
-                    plt.minorticks_off()
-                    
-                    
-                    
-                  
-                    df.plot(marker='o')
-                    TD = str(TD)
-                    plt.xlabel('Echantillons: {}'.format(DataPointCount),color="c")
-                    plt.ylabel("Utilisation en %",color="r")
-                    TD = TD.split('.')[0]
-                    plt.title("Time:\n{}".format(TD) , color='red')
-                    img_base64 = BytesIO()
-                    plt.savefig(img_base64, format='jpg', dpi=120)
-                    img = base64.b64encode(img_base64.getvalue())
-                    img = str(img)
-                    img = img[2:-1]
-                    DataPointCount += 1
-                    plt.close('all')
-                    if time.time() - connecttime > 10:
-                        DataPointCount = 0
-                        firstrequest = False
-                        df = pd.DataFrame()
-                        connecttime = time.time()
-                    else:
-                        return render_template('index.html', value=img,cpu=x,ram=y,proc=z,sys=w)
+    data = {
+        "time": datetime.now().strftime("%H:%M:%S"),
+        "hostname": platform.node(),
+        "system": platform.system(),
+        "processor": platform.processor() or "N/A",
+        "cpu_percent": round(cpu, 1),
+        "ram_percent": round(ram.percent, 1),
+        "ram_used_gb": bytes_to_gb(ram.used),
+        "ram_total_gb": bytes_to_gb(ram.total),
+        "disk_percent": round(disk.percent, 1),
+        "disk_used_gb": bytes_to_gb(disk.used),
+        "disk_total_gb": bytes_to_gb(disk.total),
+        "interface": net["interface"],
+        "ip_address": net["ip"],
+        "mac_address": net["mac"],
+        "network_status": net["status"]
+    }
+    return jsonify(data)
 
-                DataPointCount += 1
-                plt.close('all')
-                
 
-        except(KeyboardInterrupt, SystemExit):
-            return 0
-
-	
-	
-   
-
-if __name__ == '__main__':
-    print('Server Up !')
-    socketio.run(application, host='0.0.0.0', port=8080)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080, debug=True)

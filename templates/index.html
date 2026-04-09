@@ -1,106 +1,218 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
-        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
-        <script type="text/javascript" charset="utf-8">
-        $(document).ready(function(){
-            var socket = io.connect('http://' + document.domain + ':' + location.port + '/');
-            socket.on('my response', function(msg) {
-                $('#log').append('<p>Received: ' + msg.data + '</p>');
-            });
-            $('form#emit').submit(function(event) {
-            socket.emit('my event', {data: $('#emit_data').val()});
-            return false;
-             });
-        });
-        </script>
-        
-        
-        <script type="text/javascript" src="static/javas.js">
-        
-        </script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real-Time System Monitor</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    .wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .sub {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: #334155;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      cursor: grab;
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #f8fafc;
+    }
+    .value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .meta {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .progress {
+      width: 100%;
+      height: 10px;
+      background: #334155;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+      transition: width 0.5s ease;
+    }
+    .status-up {
+      color: #22c55e;
+      font-weight: 700;
+    }
+    .status-down {
+      color: #ef4444;
+      font-weight: 700;
+    }
+    .footer-note {
+      margin-top: 20px;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div>
+        <div class="title">Real-Time System Monitor</div>
+      </div>
+      <div class="buttons">
+        <button onclick="refreshStats()">Refresh now</button>
+        <button class="secondary" onclick="toggleAutoUpdate()" id="toggleBtn">Pause auto update</button>
+      </div>
+    </div>
 
-
-	<link rel="stylesheet" href="static/style.css">
-        <meta charset="utf-8">
-       
-        <meta http-equiv="refresh" content="1">
-    
-    
-    <title>FlaskApplication</title>
-    <link
-      href="https://fonts.googleapis.com/css?family=Montserrat&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css"
-    />
-    <link rel="stylesheet" href="static/style.css" />
-  </head>
-  <body>
-    <!-- Container containing all the elements -->
-        <div class="circleBar">
-      <!-- Webloper title -->
-      
-        <div class="main_title">
-        System Monitor
- 
-        </div>
-      
-      <h3 class="title">processor : {{proc}} </h3>
-      <h3 class="title">system : {{sys}} </h3>
-      
-     
-      <!-- Container for circular progress bar -->
-      <div class="container ">
-        <div class="row align-items-center">
-          <div class="col-md-6">
-            <div
-              class="round"
-              data-value="{{cpu}}"
-              data-size="160"
-              data-thickness="4"
-              
-            >
-            <div class="text" style="color:#ff983b; font-size: 30px;">CPU usage  </div>
-              <strong></strong>
-            </div>
-           </div>
-          
-          <div class="col-md-6">
-            <div
-              class="round"
-              data-value="{{ram}}"
-              data-size="160"
-              data-thickness="4"
-            >
-            <div class="text" style="color:#ff983b ;font-size: 30px;">RAM usage </div>
-              <strong></strong>
-            </div>
-          </div>
-        </div>
+    <div class="grid" id="dashboard">
+      <div class="card">
+        <h3>CPU Usage</h3>
+        <div class="value" id="cpuValue">0%</div>
+        <div class="meta" id="processorText">Processor: --</div>
+        <div class="progress"><div class="bar" id="cpuBar"></div></div>
       </div>
 
-            <!---courbe-->
-        <div class="container py-5">
-  <div class="row">
-        <div class="row">
-        <div class="mx-auto text-center">
-            <img src="data:image/jpeg;base64,{{ value }}" alt="PyMon" style="position=relative">
-        </div>
-        </div>
-        <!--endCourbe-->
-        
-      
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-circle-progress/1.2.0/circle-progress.min.js"></script>
-    <script src="static/function.js"></script>
-  </body>
+      <div class="card">
+        <h3>RAM Usage</h3>
+        <div class="value" id="ramValue">0%</div>
+        <div class="meta" id="ramText">Used: -- / -- GB</div>
+        <div class="progress"><div class="bar" id="ramBar"></div></div>
+      </div>
+
+      <div class="card">
+        <h3>Disk Usage</h3>
+        <div class="value" id="diskValue">0%</div>
+        <div class="meta" id="diskText">Used: -- / -- GB</div>
+        <div class="progress"><div class="bar" id="diskBar"></div></div>
+      </div>
+
+      <div class="card">
+        <h3>Network Status</h3>
+        <div class="value" id="netStatus">--</div>
+        <div class="meta" id="ifaceText">Interface: --</div>
+        <div class="meta" id="ipText">IP: --</div>
+        <div class="meta" id="macText">MAC: --</div>
+      </div>
+
+      <div class="card">
+        <h3>Host Info</h3>
+        <div class="value" id="systemValue">--</div>
+        <div class="meta" id="hostText">Hostname: --</div>
+        <div class="meta" id="timeText">Updated: --</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let autoUpdate = true;
+    let intervalId = null;
+
+    new Sortable(document.getElementById('dashboard'), {
+      animation: 150,
+      ghostClass: 'sortable-ghost'
+    });
+
+    async function refreshStats() {
+      const res = await fetch('/stats');
+      const data = await res.json();
+
+      document.getElementById('cpuValue').textContent = data.cpu_percent + '%';
+      document.getElementById('ramValue').textContent = data.ram_percent + '%';
+      document.getElementById('diskValue').textContent = data.disk_percent + '%';
+
+      document.getElementById('processorText').textContent = 'Processor: ' + data.processor;
+      document.getElementById('ramText').textContent = `Used: ${data.ram_used_gb} / ${data.ram_total_gb} GB`;
+      document.getElementById('diskText').textContent = `Used: ${data.disk_used_gb} / ${data.disk_total_gb} GB`;
+
+      document.getElementById('ifaceText').textContent = 'Interface: ' + data.interface;
+      document.getElementById('ipText').textContent = 'IP: ' + data.ip_address;
+      document.getElementById('macText').textContent = 'MAC: ' + data.mac_address;
+
+      const statusEl = document.getElementById('netStatus');
+      statusEl.textContent = data.network_status;
+      statusEl.className = data.network_status === 'Up' ? 'value status-up' : 'value status-down';
+
+      document.getElementById('systemValue').textContent = data.system;
+      document.getElementById('hostText').textContent = 'Hostname: ' + data.hostname;
+      document.getElementById('timeText').textContent = 'Updated: ' + data.time;
+
+      document.getElementById('cpuBar').style.width = data.cpu_percent + '%';
+      document.getElementById('ramBar').style.width = data.ram_percent + '%';
+      document.getElementById('diskBar').style.width = data.disk_percent + '%';
+    }
+
+    function startAutoUpdate() {
+      intervalId = setInterval(() => {
+        if (autoUpdate) refreshStats();
+      }, 1000);
+    }
+
+    function toggleAutoUpdate() {
+      autoUpdate = !autoUpdate;
+      document.getElementById('toggleBtn').textContent =
+        autoUpdate ? 'Pause auto update' : 'Resume auto update';
+    }
+
+    refreshStats();
+    startAutoUpdate();
+  </script>
+</body>
 </html>
