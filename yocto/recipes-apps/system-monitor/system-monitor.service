@@ -1,0 +1,12 @@
+[Unit]
+Description=Real-Time System Monitor
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/system-monitor
+ExecStart=/usr/bin/python3 /opt/system-monitor/app.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
