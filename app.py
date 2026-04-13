@@ -1,11 +1,15 @@
-from flask import Flask, render_template, jsonify
-import psutil
-import socket
-import os
+from flask import Flask, jsonify, render_template
+from prometheus_flask_exporter import PrometheusMetrics
 import platform
+import socket
+import uuid
+import psutil
 from datetime import datetime
+import os
 
 app = Flask(__name__)
+metrics = PrometheusMetrics(app)
+metrics.info("app_info", "Application info", version="1.0.0")
 
 
 def bytes_to_gb(value):
@@ -51,6 +55,16 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/healthz")
+def healthz():
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route("/readyz")
+def readyz():
+    return jsonify({"status": "ready"}), 200
+
+
 @app.route("/stats")
 def stats():
     cpu = psutil.cpu_percent(interval=0.5)
@@ -62,6 +76,7 @@ def stats():
         "time": datetime.now().strftime("%H:%M:%S"),
         "hostname": platform.node(),
         "system": platform.system(),
+        "os": platform.system(),
         "processor": platform.processor() or "N/A",
         "cpu_percent": round(cpu, 1),
         "ram_percent": round(ram.percent, 1),
@@ -79,4 +94,4 @@ def stats():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=False)

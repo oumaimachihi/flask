@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Real-Time System Monitor</title>
-  
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-  <style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time System Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+
+      <style>
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -111,108 +112,63 @@
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <div class="header">
-      <div>
-        <div class="title">Real-Time System Monitor</div>
-      </div>
-      <div class="buttons">
-        <button onclick="refreshStats()">Refresh now</button>
-        <button class="secondary" onclick="toggleAutoUpdate()" id="toggleBtn">Pause auto update</button>
-      </div>
-    </div>
+    <header class="header">
+        <h1>Real-Time System Monitor</h1>
+        <div class="actions">
+            <button id="refresh-btn">Refresh Now</button>
+            <button id="toggle-auto-btn">Pause Auto Refresh</button>
+        </div>
+    </header>
 
-    <div class="grid" id="dashboard">
-      <div class="card">
-        <h3>CPU Usage</h3>
-        <div class="value" id="cpuValue">0%</div>
-        <div class="meta" id="processorText">Processor: --</div>
-        <div class="progress"><div class="bar" id="cpuBar"></div></div>
-      </div>
+    <main class="dashboard" id="dashboard">
+        <section class="card">
+            <h2>CPU Usage</h2>
+            <p id="cpu-value">0%</p>
+            <div class="progress"><div id="cpu-bar" class="progress-bar"></div></div>
+        </section>
 
-      <div class="card">
-        <h3>RAM Usage</h3>
-        <div class="value" id="ramValue">0%</div>
-        <div class="meta" id="ramText">Used: -- / -- GB</div>
-        <div class="progress"><div class="bar" id="ramBar"></div></div>
-      </div>
+        <section class="card">
+            <h2>RAM Usage</h2>
+            <p id="ram-value">0%</p>
+            <div class="progress"><div id="ram-bar" class="progress-bar"></div></div>
+        </section>
 
-      <div class="card">
-        <h3>Disk Usage</h3>
-        <div class="value" id="diskValue">0%</div>
-        <div class="meta" id="diskText">Used: -- / -- GB</div>
-        <div class="progress"><div class="bar" id="diskBar"></div></div>
-      </div>
+        <section class="card">
+            <h2>Disk Usage</h2>
+            <p id="disk-value">0%</p>
+            <div class="progress"><div id="disk-bar" class="progress-bar"></div></div>
+        </section>
 
-      <div class="card">
-        <h3>Network Status</h3>
-        <div class="value" id="netStatus">--</div>
-        <div class="meta" id="ifaceText">Interface: --</div>
-        <div class="meta" id="ipText">IP: --</div>
-        <div class="meta" id="macText">MAC: --</div>
-      </div>
+        <section class="card">
+            <h2>IP Address</h2>
+            <p id="ip-value">Loading...</p>
+        </section>
 
-      <div class="card">
-        <h3>Host Info</h3>
-        <div class="value" id="systemValue">--</div>
-        <div class="meta" id="hostText">Hostname: --</div>
-        <div class="meta" id="timeText">Updated: --</div>
-      </div>
-    </div>
-  </div>
+        <section class="card">
+            <h2>MAC Address</h2>
+            <p id="mac-value">Loading...</p>
+        </section>
 
-  <script>
-    let autoUpdate = true;
-    let intervalId = null;
+        <section class="card">
+            <h2>Network Status</h2>
+            <p id="network-value">Loading...</p>
+        </section>
 
-    new Sortable(document.getElementById('dashboard'), {
-      animation: 150,
-      ghostClass: 'sortable-ghost'
-    });
+        <section class="card">
+            <h2>Hostname</h2>
+            <p id="hostname-value">Loading...</p>
+        </section>
 
-    async function refreshStats() {
-      const res = await fetch('/stats');
-      const data = await res.json();
+        <section class="card">
+            <h2>Operating System</h2>
+            <p id="os-value">Loading...</p>
+        </section>
 
-      document.getElementById('cpuValue').textContent = data.cpu_percent + '%';
-      document.getElementById('ramValue').textContent = data.ram_percent + '%';
-      document.getElementById('diskValue').textContent = data.disk_percent + '%';
-
-      document.getElementById('processorText').textContent = 'Processor: ' + data.processor;
-      document.getElementById('ramText').textContent = `Used: ${data.ram_used_gb} / ${data.ram_total_gb} GB`;
-      document.getElementById('diskText').textContent = `Used: ${data.disk_used_gb} / ${data.disk_total_gb} GB`;
-
-      document.getElementById('ifaceText').textContent = 'Interface: ' + data.interface;
-      document.getElementById('ipText').textContent = 'IP: ' + data.ip_address;
-      document.getElementById('macText').textContent = 'MAC: ' + data.mac_address;
-
-      const statusEl = document.getElementById('netStatus');
-      statusEl.textContent = data.network_status;
-      statusEl.className = data.network_status === 'Up' ? 'value status-up' : 'value status-down';
-
-      document.getElementById('systemValue').textContent = data.system;
-      document.getElementById('hostText').textContent = 'Hostname: ' + data.hostname;
-      document.getElementById('timeText').textContent = 'Updated: ' + data.time;
-
-      document.getElementById('cpuBar').style.width = data.cpu_percent + '%';
-      document.getElementById('ramBar').style.width = data.ram_percent + '%';
-      document.getElementById('diskBar').style.width = data.disk_percent + '%';
-    }
-
-    function startAutoUpdate() {
-      intervalId = setInterval(() => {
-        if (autoUpdate) refreshStats();
-      }, 1000);
-    }
-
-    function toggleAutoUpdate() {
-      autoUpdate = !autoUpdate;
-      document.getElementById('toggleBtn').textContent =
-        autoUpdate ? 'Pause auto update' : 'Resume auto update';
-    }
-
-    refreshStats();
-    startAutoUpdate();
-  </script>
+        <section class="card">
+            <h2>Processor</h2>
+            <p id="processor-value">Loading...</p>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
